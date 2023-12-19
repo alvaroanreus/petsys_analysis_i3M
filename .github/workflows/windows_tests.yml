@@ -1,0 +1,31 @@
+# This workflow will install the necessary environment
+# and run all the tests on windows.
+
+name: Test code windows
+
+on:
+  pull_request:
+
+jobs:
+  build:
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.10]
+        platform: [windows-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          activate-environment: crystal_cal
+          environment-file: windEnv-crystal_cal.yml
+          auto-activate-base: false
+      - name: Test with pytest
+        shell: powershell
+        run: |
+          python setup.py develop
+          pytest -v
