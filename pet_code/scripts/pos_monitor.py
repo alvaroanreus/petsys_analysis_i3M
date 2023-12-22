@@ -2,7 +2,7 @@
 
 """Make position plots under given (conf) calibration conditions and return plots
 
-Usage: pos_monitor.py (--conf CONFFILE) [-j] INPUT ...
+Usage: pos_monitor.py (--conf CONFFILE) [-j] [-r] INPUT ...
 
 Arguments:
     INPUT  File(s) to be analysed
@@ -12,6 +12,7 @@ Required:
 
 Options:
     -j  Join data from multiple files instead of treating them as separate.
+    -r  Takes reference as a flag.
 """
 
 import os
@@ -110,7 +111,7 @@ def energy_sel_cut(reader, infiles, flag_ref=False):
                             continue
     else:
         for fn in infiles:
-            for evt in reader(file):
+            for evt in reader(fn):
                 for sm_info in evt:
                     _, eng = get_supermodule_eng(sm_info)
                     slab_id = max_slab(sm_info)[0]
