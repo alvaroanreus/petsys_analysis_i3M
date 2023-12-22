@@ -116,13 +116,12 @@ def energy_sel_cut(reader, infiles, flag_ref=False):
                     _, eng = get_supermodule_eng(sm_info)
                     slab_id = max_slab(sm_info)[0]
                     sm, mm  = chan_map.get_modules(slab_id)
-                    if mm in mms:
-                        try:
-                            energy_mm_dict[(sm,mm)].append(eng)
-                        except KeyError:
-                            energy_mm_dict[(sm,mm)] = [eng]
-                    else:
-                        continue
+                    
+                    try:
+                        energy_mm_dict[(sm,mm)].append(eng)
+                    except KeyError:
+                        energy_mm_dict[(sm,mm)] = [eng]
+                
                         
     for key in energy_mm_dict.keys():
  
