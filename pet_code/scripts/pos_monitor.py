@@ -121,10 +121,10 @@ def energy_sel_cut(reader, infiles):
         lim_inf = 0.8*mu
         lim_sup = 1.2*mu
         energy_mm_dict[key] = (lim_inf, lim_sup)
-        plt.plot(fit[0], fit[1])
-        plt.savefig(f'{key}')
-        plt.legend()
-        plt.close()
+        # plt.plot(fit[0], fit[1])
+        # plt.savefig(f'{key}')
+        # plt.legend()
+        # plt.close()
             
 
     return energy_mm_dict
