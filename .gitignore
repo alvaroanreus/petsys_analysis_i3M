@@ -18,3 +18,7 @@ miniconda.sh
 
 # macOS
 .DS_Store
+
+# data files
+data_test/
+images_gaussian/
