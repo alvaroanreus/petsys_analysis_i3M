@@ -17,6 +17,7 @@ Options:
 import os
 import configparser
 import re
+import fnmatch
 
 from docopt import docopt
 from typing import Callable
@@ -81,42 +82,51 @@ def cog_wrap(chan_map: ChannelMap, local_indx: int, power: int) -> Callable:
 
 
 def energy_sel_cut(reader, infiles):
-    energy_mm_dict = {}
-    ldat_mm_dict = {"_14.ldat": [12, 13, 14, 15], "_15.ldat": [12, 13, 14, 15], "_16.ldat": [12, 13, 14, 15]}
-
-    for key, mms in ldat_mm_dict.items():
-        key in infiles
-    [s for s in key if  in s]
     max_slab = select_max_energy(ChannelType.TIME)
+    energy_mm_dict = {}
+    ldat_mm_dict = {"_14.ldat": [12, 13, 14, 15], "_15.ldat": [12, 13, 14, 15], "_16.ldat": [12, 13, 14, 15],
+                    "_44.ldat": [8, 9, 10, 11], "_45.ldat": [8, 9, 10, 11], "_46.ldat": [8, 9, 10, 11],
+                    "_67.ldat": [4, 5, 6, 7], "_70.ldat": [4, 5, 6, 7], "_73.ldat": [4, 5, 6, 7],
+                    "_94.ldat": [0, 1, 2, 3], "_95.ldat": [0, 1, 2, 3], "_96.ldat": [0, 1, 2, 3]}
+    
+    for key, mms in ldat_mm_dict.items():
+        matching_files = fnmatch.filter(infiles, f"*{key}*")
+        print(f'key: {key}')
+        print(matching_files)
+        if matching_files:
+            file = matching_files[0]
+            print(file)
+            for evt in reader(file):
+                for sm_info in evt:
+                    _, eng = get_supermodule_eng(sm_info)
+                    slab_id = max_slab(sm_info)[0]
+                    sm, mm  = chan_map.get_modules(slab_id)
+                    if mm in mms:
+                        try:
+                            energy_mm_dict[(sm,mm)].append(eng)
+                        except KeyError:
+                            energy_mm_dict[(sm,mm)] = [eng]
+                    else:
+                        continue
 
-    for fn in infiles:
-        for evt in reader(fn):
-            for sm_info in evt:
-                _, eng = get_supermodule_eng(sm_info)
-                slab_id = max_slab(sm_info)[0]
-                sm, mm  = chan_map.get_modules(slab_id)
-                try:
-                    energy_mm_dict[(sm,mm)].append(eng)
-                except KeyError:
-                    energy_mm_dict[(sm,mm)] = [eng]
-
-
+                        
     for key in energy_mm_dict.keys():
-        if key[0] == 90:
-            data, bins, otros = plt.hist(energy_mm_dict[(90, key[1])], range=[0, 100], bins=100, label=f"(sm, mm): 90, {key[1]})")
-            fit = fit_gaussian(data, bins)
-        
-            popt = fit[2]
-            mu, sig, amp = popt
+ 
+        data, bins, otros = plt.hist(energy_mm_dict[key], range=[0, 100], bins=100, label=f"(sm, mm): {key})")
+        fit = fit_gaussian(data, bins)
 
-            plt.plot(fit[0], fit[1])
-            plt.savefig(f'(90, {key[1]}) 100')
-            plt.legend()
-            plt.close()
-                
-        # plt.show()
+        pars = fit[2]
+        amp, mu, sig = pars
+        print(f'key: {key}, mu: {mu}, sig: {sig}, amp: {amp}')
+        lim_inf = 0.8*mu
+        lim_sup = 1.2*mu
+        energy_mm_dict[key] = (lim_inf, lim_sup)
+        plt.plot(fit[0], fit[1])
+        plt.savefig(f'{key}')
+        plt.legend()
+        plt.close()
+            
 
-    exit(0)
     return energy_mm_dict
 
 def position_histograms(batch_size: int      ,
@@ -124,11 +134,11 @@ def position_histograms(batch_size: int      ,
                         dbins    : np.ndarray,
                         pos_rec  : Callable  ,
                         ch_per_mm: int       ,
-                        emin_max : tuple     ,
+                        emin_max : dict     ,
                         chan_map : ChannelMap
                         ) -> Callable:
     max_slab = select_max_energy(ChannelType.TIME)
-    erange   = select_energy_range(*emin_max)
+    # erange   = select_energy_range(*emin_max)
     # Channel ordering
     icols    = ['supermodule', 'minimodule', 'local_y']
     isTime   = chan_map.mapping.type.map(lambda x: x is ChannelType.TIME)
@@ -144,21 +154,23 @@ def position_histograms(batch_size: int      ,
         for sm_info in evt:
             _plotter.all_count += 1
             _, eng = get_supermodule_eng(sm_info)
-            #print(sm_info)
-            #print(eng)
+            #print(f'sm_info: {sm_info}')
+            #print(f'eng: {eng}')
+            try:
+                slab_id = max_slab(sm_info)[0]
+            except TypeError:
+                continue
             
+            sm, mm  = chan_map.get_modules(slab_id)
+            erange   = select_energy_range(*emin_max[(sm,mm)])
             if erange(eng):
-                try:
-                    slab_id = max_slab(sm_info)[0]
-                except TypeError:
-                    continue
                 _plotter.ecount += 1   
                 #print("ERROR: ", sm_info)  
                 #print(max_slab(sm_info))           
                 #print(slab_id, chan_map.get_channel_position(slab_id), slab_indx(chan_map.get_channel_position(slab_id)[0]))
                 
                 slab_idx = slab_indx(chan_map.get_channel_position(slab_id)[0])
-                sm, mm  = chan_map.get_modules(slab_id)
+                #sm, mm  = chan_map.get_modules(slab_id)
                 #sm_mm = (sm, mm)
                 sm_mm_slab_idx = (sm, mm, slab_idx)
                 #print(sm,mm)
@@ -209,7 +221,6 @@ if __name__ == '__main__':
     else:
         num_file = base_name
         print(f'No number found in file name. Taking base name {base_name}')
-    
 
     infiles  = args['INPUT']
 
@@ -255,8 +266,9 @@ if __name__ == '__main__':
 
     
     energy_cut_dict = energy_sel_cut(reader, infiles)
+    print(energy_cut_dict)
 
-    plotter = position_histograms(batch_size, ybins, dbins, pos_rec, 8, emin_max, chan_map)
+    plotter = position_histograms(batch_size, ybins, dbins, pos_rec, 8, energy_cut_dict, chan_map)
     for fn in infiles:
         print(f'Reading {fn}')
         for evt in map(cal_sel, reader(fn)):

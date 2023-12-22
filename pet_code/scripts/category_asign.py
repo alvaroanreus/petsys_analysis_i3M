@@ -146,7 +146,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Use: python program.py file_ref.tsv file_inf.tsv")
         sys.exit(1)
-    yaml_file = "/home/LabPC_10/WorkingDir/sw/python_code/petsys_analysis/pet_code/test_data/SM_mapping_5rings.yaml"
+    yaml_file = "/home/LabPC_10/WorkingDir/sw/python_code/petsys_analysis_i3M/pet_code/test_data/SM_mapping_5rings.yaml"
     with open(yaml_file) as old_map_buffer:
         yaml_dict = yaml.safe_load(old_map_buffer)
 

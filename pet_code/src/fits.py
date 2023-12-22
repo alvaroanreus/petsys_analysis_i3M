@@ -80,6 +80,7 @@ def fit_gaussian(data     : np.ndarray              ,
     sig0 = np.sqrt(sig0)
 
     pars, pcov = curve_fit(gaussian, x, y, sigma=err, p0=[wsum, mu0, sig0])
+    # pars = [amp, mu, sig]
     try:
         chi_ndf    = np.square((y - gaussian(x, *pars)) / err).sum() / (y.shape[0] - 3)
     except RuntimeWarning:
