@@ -81,21 +81,35 @@ def cog_wrap(chan_map: ChannelMap, local_indx: int, power: int) -> Callable:
     return _rec
 
 
-def energy_sel_cut(reader, infiles):
+def energy_sel_cut(reader, infiles, flag_ref=False):
     max_slab = select_max_energy(ChannelType.TIME)
     energy_mm_dict = {}
     ldat_mm_dict = {"_14.ldat": [12, 13, 14, 15], "_15.ldat": [12, 13, 14, 15], "_16.ldat": [12, 13, 14, 15],
                     "_44.ldat": [8, 9, 10, 11], "_45.ldat": [8, 9, 10, 11], "_46.ldat": [8, 9, 10, 11],
                     "_67.ldat": [4, 5, 6, 7], "_70.ldat": [4, 5, 6, 7], "_73.ldat": [4, 5, 6, 7],
                     "_94.ldat": [0, 1, 2, 3], "_95.ldat": [0, 1, 2, 3], "_96.ldat": [0, 1, 2, 3]}
-    
-    for key, mms in ldat_mm_dict.items():
-        matching_files = fnmatch.filter(infiles, f"*{key}*")
-        print(f'key: {key}')
-        print(matching_files)
-        if matching_files:
-            file = matching_files[0]
-            print(file)
+    if flag_ref:
+        for key, mms in ldat_mm_dict.items():
+            matching_files = fnmatch.filter(infiles, f"*{key}*")
+            print(f'key: {key}')
+            print(matching_files)
+            if matching_files:
+                file = matching_files[0]
+                print(file)
+                for evt in reader(file):
+                    for sm_info in evt:
+                        _, eng = get_supermodule_eng(sm_info)
+                        slab_id = max_slab(sm_info)[0]
+                        sm, mm  = chan_map.get_modules(slab_id)
+                        if mm in mms:
+                            try:
+                                energy_mm_dict[(sm,mm)].append(eng)
+                            except KeyError:
+                                energy_mm_dict[(sm,mm)] = [eng]
+                        else:
+                            continue
+    else:
+        for fn in infiles:
             for evt in reader(file):
                 for sm_info in evt:
                     _, eng = get_supermodule_eng(sm_info)
@@ -108,7 +122,6 @@ def energy_sel_cut(reader, infiles):
                             energy_mm_dict[(sm,mm)] = [eng]
                     else:
                         continue
-
                         
     for key in energy_mm_dict.keys():
  
@@ -206,6 +219,7 @@ if __name__ == '__main__':
     conf.read(args['--conf'])
 
     all_files = args['-j']
+    flag_ref = args['-r']
     name_file = args['INPUT']
     
     num_ext = re.search(r"_([0-9]+)\.ldat", name_file[0])
@@ -265,7 +279,7 @@ if __name__ == '__main__':
     # plotter = position_histograms(ybins, dbins, yrec, drec, 8, emin_max, chan_map)
 
     
-    energy_cut_dict = energy_sel_cut(reader, infiles)
+    energy_cut_dict = energy_sel_cut(reader, infiles, flag_ref)
     print(energy_cut_dict)
 
     plotter = position_histograms(batch_size, ybins, dbins, pos_rec, 8, energy_cut_dict, chan_map)
