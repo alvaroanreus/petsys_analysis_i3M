@@ -23,55 +23,60 @@ Options:
 import os
 from docopt import docopt
 
-import numpy  as np
+import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
 
 from pet_code.src.filters import filter_event_by_impacts
-from pet_code.src.fits    import fit_gaussian
-from pet_code.src.io      import ChannelMap
-from pet_code.src.io      import read_petsys_filebyfile
-from pet_code.src.plots   import ctr
-from pet_code.src.util    import calibrate_energies
-from pet_code.src.util    import read_skewfile
-from pet_code.src.util    import select_energy_range
+from pet_code.src.fits import fit_gaussian
+from pet_code.src.io import ChannelMap
+from pet_code.src.io import read_petsys_filebyfile
+from pet_code.src.plots import ctr
+from pet_code.src.util import calibrate_energies
+from pet_code.src.util import read_skewfile
+from pet_code.src.util import select_energy_range
 
 
-if __name__ == '__main__':
-    args       = docopt(__doc__)
-    file_name  =       args['INPUT' ]
-    map_file   =       args['--map' ]
-    tcal       =       args['--tcal']
-    ecal       =       args['--ecal']
-    skew_file  =       args['--sk'  ]
-    eng_limits =       args['--elim']
-    eref_val   = float(args['--eref'])
+if __name__ == "__main__":
+    args = docopt(__doc__)
+    file_name = args["INPUT"]
+    map_file = args["--map"]
+    tcal = args["--tcal"]
+    ecal = args["--ecal"]
+    skew_file = args["--sk"]
+    eng_limits = args["--elim"]
+    eref_val = float(args["--eref"])
 
     chan_map = ChannelMap(map_file)
 
-    evt_filter    = filter_event_by_impacts(4)
-    reader        = read_petsys_filebyfile(chan_map.ch_type, sm_filter=evt_filter)
-    cal_func      = calibrate_energies(chan_map.get_chantype_ids, tcal, ecal)
+    evt_filter = filter_event_by_impacts(4)
+    reader = read_petsys_filebyfile(chan_map.ch_type, sm_filter=evt_filter)
+    cal_func = calibrate_energies(chan_map.get_chantype_ids, tcal, ecal)
     filtered_evts = list(map(cal_func, reader(file_name)))
 
-    skew       = read_skewfile(skew_file)
-    sel_energy = select_energy_range(*map(float, eng_limits.split(',')))
-    ctr_raw    = ctr(sel_energy)
-    ctr_skew   = ctr(sel_energy, skew)
-    dts_raw    = [dt for evt in filtered_evts if (dt := ctr_raw (evt))]
-    dts_skew   = [dt for evt in filtered_evts if (dt := ctr_skew(evt))]
+    skew = read_skewfile(skew_file)
+    sel_energy = select_energy_range(*map(float, eng_limits.split(",")))
+    ctr_raw = ctr(sel_energy)
+    ctr_skew = ctr(sel_energy, skew)
+    dts_raw = [dt for evt in filtered_evts if (dt := ctr_raw(evt))]
+    dts_skew = [dt for evt in filtered_evts if (dt := ctr_skew(evt))]
 
     hist_bins = np.linspace(-10000, 10000, 800, endpoint=False)
-    plt.hist(dts_raw, bins=hist_bins, histtype='step', label='Raw times')
-    bin_vals, bin_edges, _ = plt.hist(dts_skew, bins=hist_bins, histtype='step', label='skew corrected')
-    bcent, gvals, pars, _, _  = fit_gaussian(bin_vals, bin_edges)
-    plt.plot(bcent, gvals, label=f'fit centroid = {round(pars[1], 3)}, sigma = {round(pars[2], 3)}')
+    plt.hist(dts_raw, bins=hist_bins, histtype="step", label="Raw times")
+    bin_vals, bin_edges, _ = plt.hist(
+        dts_skew, bins=hist_bins, histtype="step", label="skew corrected"
+    )
+    bcent, gvals, pars, _, _ = fit_gaussian(bin_vals, bin_edges)
+    plt.plot(
+        bcent,
+        gvals,
+        label=f"fit centroid = {round(pars[1], 3)}, sigma = {round(pars[2], 3)}",
+    )
     plt.legend()
-    plt.xlabel('timestamp difference (ps)')
-    plt.savefig(file_name.split(os.sep)[-1].replace('.ldat', '_skewDT.png'))
+    plt.xlabel("timestamp difference (ps)")
+    plt.savefig(file_name.split(os.sep)[-1].replace(".ldat", "_skewDT.png"))
     plt.show()
-
 
     # c_calc     = centroid_calculation(centroid_map)
     # evt_engs   = slab_energy_centroids(filtered_evts, c_calc, time_ch)
