@@ -146,6 +146,7 @@ def energy_sel_cut(reader, infiles, perc_cut, flag_ref=False):
         except RuntimeError:
             plt.show()
             print(f"ERROR: {key}")
+            energy_mm_dict[key] = (0, 100)
             continue
 
         pars = fit[2]
