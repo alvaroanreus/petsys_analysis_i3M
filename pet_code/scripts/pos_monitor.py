@@ -141,7 +141,12 @@ def energy_sel_cut(reader, infiles, perc_cut, flag_ref=False):
         data, bins, otros = plt.hist(
             energy_mm_dict[key], range=[0, 100], bins=100, label=f"(sm, mm): {key})"
         )
-        fit = fit_gaussian(data, bins)
+        try:
+            fit = fit_gaussian(data, bins)
+        except RuntimeError:
+            plt.show()
+            print(f"ERROR: {key}")
+            continue
 
         pars = fit[2]
         amp, mu, sig = pars
