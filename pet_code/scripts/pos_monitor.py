@@ -144,8 +144,8 @@ def energy_sel_cut(reader, infiles, perc_cut, flag_ref=False):
         try:
             fit = fit_gaussian(data, bins)
         except RuntimeError:
-            plt.show()
             print(f"ERROR: {key}")
+            plt.savefig(f"RuntimeError_{key}")
             energy_mm_dict[key] = (0, 100)
             continue
 
