@@ -174,6 +174,10 @@ if __name__ == "__main__":
 
     data_file_ref = os.path.join(file_ref_path)
     data_file_inf = os.path.join(file_inf_path)
+    file_name_only_ref = os.path.basename(file_ref_path)
+    file_name_only_inf = os.path.basename(file_inf_path)
+    file_name_only_ref, _ = os.path.splitext(file_name_only_ref)
+    file_name_only_inf, _ = os.path.splitext(file_name_only_inf)
 
     read_file_ref = pd.read_csv(data_file_ref, sep="\t")
     read_file_inf = pd.read_csv(data_file_inf, sep="\t")
@@ -200,3 +204,13 @@ if __name__ == "__main__":
 
     print(cat_dict)
     print(len(cat_dict.keys()))
+
+    # Extrae las claves y los valores en arrays de numpy
+    keys = np.array(list(cat_dict.keys()), dtype=np.int32)
+    values = np.array(list(cat_dict.values()), dtype=np.int32)
+
+    # Combina las claves y los valores en un solo array de numpy
+    combined = np.vstack((keys, values)).T
+
+    # Guarda el array combinado en un archivo binario
+    combined.tofile(f"cat_dict/cat_dict_{file_name_only_inf}.bin")
